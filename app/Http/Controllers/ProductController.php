@@ -122,13 +122,13 @@ class ProductController extends Controller
     public function getOneProduct($id){
         if($product = DB::table('products')->where('id',$id))
         {
+            if($product->get(''))
             return response()->json($product->get());
         }
         else
         {
             return response(['Invalid ID!']);
         }
-
     }
 
     public function deleteOneProduct($id){

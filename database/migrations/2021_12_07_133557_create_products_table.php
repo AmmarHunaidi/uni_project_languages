@@ -17,18 +17,23 @@ class CreateProductsTable extends Migration
             $table->id();
             $table->timestamps();
             $table->string('name');
-            $table->string('category');
           //  $table->mediumText('image');
             $table->date('expires_at'); // yyyy-mm-dd
             $table->string('contact_info');
-            $table->integer('product_count');
-            $table->array('views');
-            $table->array('likes');
+            $table->string('description');
+            $table->integer('product_count')->default(1);
+            $table->integer('days_before_discount_1');
+            $table->integer('discount_1');
+            $table->integer('days_before_discount_2');
+            $table->integer('discount_2');
+            $table->json('viewed_users');
+            $table->json('liked_users');
+            $table->json('comments');
             $table->double('price'); // 6 decimal numbers and 5 number after decimal point
-            //$table->unsignedBigInteger('user_id');
-           // $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
-            // $table->unsignedBigInteger('category_id');
-            // $table->foreign('category_id')->references('id')->on('categories');
+            $table->foreignId('user_id')->constrained();
+            $table->foreignId('type_id')->constrained();
+            
+            $table->softDeletes();
         });
     }
 

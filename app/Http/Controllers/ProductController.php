@@ -9,6 +9,13 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
+    public function formatImage($file){
+        $extension = $file->getClientOriginalExtension();
+        $filename = time() . '.' . $extension;
+        $file->move('storage', $filename);
+        $link = asset('storage/'.$filename);
+        return $link;
+    }
     public function getALl(){
         $products = Product::all();
         return response()->json([
@@ -20,80 +27,79 @@ class ProductController extends Controller
     public function createNewProduct(Request $request){
         $product = new Product();
         $error = array();
-        /* $fields = $request->validate([
+        $fields = $request->validate([
             'name' => 'required|string',
-            ''
+            'image' => 'required|image',
+            'expires_at' => 'required|string',
+            'contact_info' => 'required|string',
+            'description' => 'string',
+            'product_count' => 'numeric',
+            'days_before_discount_1' => 'required|numeric',
+            'discount_1' => 'required|numeric',
+            'days_before_discount_2' => 'required|numeric',
+            'discount_2' => 'required|numeric',
+            'price' => 'required|numeric',
+            'type_id' => 'required|numeric'
+        ]);
+        // prep image url
+        $file = $fields['image'];
+        $extension = $file->getClientOriginalExtension();
+        $filename = time() . '.' . $extension;
+        $file->move('storage', $filename);
+        $link = asset('storage/'.$filename);
+        $image_url = $link;
+
+        // prep date
+        $time = strtotime($request->input('expires_at'));
+        $expires_at = date('Y-m-d',$time);
+        
+        // prep empty json for likes..
+        $empty_array = array();
+        $empty_array = json_encode($empty_array);
+
+        // create product 
+        $product = new Product();
+        $product->name = $fields['name'];
+        $product->image_url = $image_url;
+        $product->expires_at = $expires_at;
+        $product->contact_info = $fields['contact_info'];
+        $product->description = $fields['description'];
+        $product->days_before_discount_1 = $fields['days_before_discount_1'];
+        $product->discount_1 = $fields['discount_1'];
+        $product->days_before_discount_2 = $fields['days_before_discount_2'];
+        $product->discount_2 = $fields['discount_2'];
+        $product->viewed_users = $empty_array;
+        $product->liked_users = $empty_array;
+        $product->comments = $empty_array;
+        $product->price = $fields['price'];
+        $product->type_id = $fields['type_id'];
+        $product->user_id = 1;
+
+        /*$product = Product::create([
+            'name' => $fields['name'],
+            'image_url' => $image_url,
+            'expires_at' => $expires_at,
+            'contact_info' => $fields['contact_info'],
+            'description' => $fields['description'],
+            'product_count' => $fields['product_count'],
+            'days_before_discount_1' => $fields['days_before_discount_1'],
+            'discount_1' => $fields['discount_1'],
+            'days_before_discount_2' => $fields['days_before_discount_2'],
+            'discount_2' => $fields['discount_2'],
+            'viewed_users' => $empty_array,
+            'liked_users' => $empty_array,
+            'comments' => $empty_array,
+            'price' => $fields['price'],
+            'type_id' => $fields['type_id'],
+            'user_id' => 1
+
         ]);*/
-        //! Todo : replace all if/elses with validate() && image upload
-        // handle if the values are null
-        //name
-        if($request->input('name')){
-            $product->name = $request->input('name');
-        }
-        else{
-            $error['name'] = "Please provide name";
-        }
-        //image
-        /* if($request->hasfile('image')){
-            $file = $request->file('image');
-            $extension = $file->getClientOriginalExtension();
-            $filename = time() . '.' . $extension;
-            //$file->move('uploads/images/', $filename);
-            Storage::disk('custom')->put($filename,$file);
-            $product->image = $filename;
-        }
-        else{
-            $error['image'] = "Please select image file";
-        }*/
-        //date expires_at
-        if($request->input('expires_at')){
-            $time = strtotime($request->input('expires_at'));
-            $formatTime = date('Y-m-d',$time);
-            $product->expires_at = $formatTime;
-        }
-        else{
-            $error['expires_at'] = "Please provide expiration date";
-        }
-        //classification
-        if($request->input('category')){
-            $product->category = $request->input('category');
-        }
-        else{
-            $error['category'] = "Please provide category";
-        }
-        //contact_info
-        if($request->input('contact_info')){
-            $product->contact_info = $request->input('contact_info');
-        }
-        else{
-            $error['contact_info'] = "Please provide contact_info";
-        }
-        //product_count
-        if($request->input('product_count')){
-            $product->product_count = (integer)$request->input('product_count');
-        }
-        else{
-            $error['product_count'] = "Please provide product_count";
-        }
-        //price
-        if($request->input('price')){
-            $product->price = (double)$request->input('price');
-        }
-        else{
-            $error['price'] = "Please provide price";
-        }
-        //if there are errors send back errors
-        if(count($error)){
-            return response() -> json([
-                'msg' => 'failed!',
-                'error' => $error
-            ]);
-        }
-        //ready to save tp database
+
         $product->save();
         return response() -> json([
             'msg' => 'Success!',
-            'product' => $product
+            'product' => $product,
+            'array' => $empty_array
         ]);
     }
 

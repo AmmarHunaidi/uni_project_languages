@@ -17,10 +17,10 @@ class CreateProductsTable extends Migration
             $table->id();
             $table->timestamps();
             $table->string('name');
-          //  $table->mediumText('image');
+            $table->text('image_url');
             $table->date('expires_at'); // yyyy-mm-dd
             $table->string('contact_info');
-            $table->string('description');
+            $table->string('description'); // maybe switch to text?
             $table->integer('product_count')->default(1);
             $table->integer('days_before_discount_1');
             $table->integer('discount_1');
@@ -32,7 +32,6 @@ class CreateProductsTable extends Migration
             $table->double('price'); // 6 decimal numbers and 5 number after decimal point
             $table->foreignId('user_id')->constrained();
             $table->foreignId('type_id')->constrained();
-            
             $table->softDeletes();
         });
     }

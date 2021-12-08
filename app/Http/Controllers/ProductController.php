@@ -57,6 +57,10 @@ class ProductController extends Controller
         $empty_array = array();
         $empty_array = json_encode($empty_array);
 
+        //get user id
+        $user = auth()->user();
+        $user_id = $user['id'];
+
         // create product 
         $product = new Product();
         $product->name = $fields['name'];
@@ -73,7 +77,7 @@ class ProductController extends Controller
         $product->comments = $empty_array;
         $product->price = $fields['price'];
         $product->type_id = $fields['type_id'];
-        $product->user_id = 1;
+        $product->user_id = $user_id;
 
         /*$product = Product::create([
             'name' => $fields['name'],
@@ -99,7 +103,6 @@ class ProductController extends Controller
         return response() -> json([
             'msg' => 'Success!',
             'product' => $product,
-            'array' => $empty_array
         ]);
     }
 

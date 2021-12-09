@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
-
+use Laravel\Sanctum\HasApiTokens;
 class UserController extends Controller
 {
     public function register(Request $request){
@@ -22,8 +22,9 @@ class UserController extends Controller
             'password' => bcrypt($fields['password'])
         ]);
         $token = $user->createToken('myapptoken')->plainTextToken;
+        User::where('id',$user['id'])->update(['remember_token'=>$token]);
         return response() -> json([
-            'msg' => 'Sucess',
+            'msg' => 'Success',
             'user' => $user,
             'token' => $token
         ]);
@@ -47,13 +48,13 @@ class UserController extends Controller
         }
 
         $token = $user->createToken('myapptoken')->plainTextToken;
+        User::where('id',$user['id'])->update(['remember_token'=>$token]);
         return response() -> json([
             'msg' => 'Sucess',
             'user' => $user,
             'token' => $token
         ]);
     }
-
 
     public function logout(Request $request){
         auth()->user()->tokens()->delete();

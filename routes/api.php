@@ -20,14 +20,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->post('/product/create', 'ProductController@createNewProduct');
 Route::middleware('auth:sanctum')->delete('product/{id}','ProductController@deleteOneProduct');
 Route::middleware('auth:sanctum')->patch('product/{id}','ProductController@updateOneProduct');
+Route::middleware('auth:sanctum')->get('/product/test','ProductController@getAll');
+Route::middleware('auth:sanctum')->get('/product','ProductController@getAllProducts');
+Route::middleware('auth:sanctum')->get('/product/search','ProductController@searchByFilter');
+Route::middleware('auth:sanctum')->get('/product/{id}','ProductController@getOneProduct');
+Route::middleware('auth:sanctum')->post('/product/like/{id}','ProductController@likeProduct');
+Route::middleware('auth:sanctum')->post('/product/view/{id}','ProductController@viewProduct');
+
 
 Route::middleware('auth:sanctum')->post('logout','UserController@logout');
-
-
-Route::get('/products','ProductController@getAll');
-Route::get('/product','ProductController@allProducts');
-Route::get('/product/search','ProductController@searchByFilter');
-Route::get('/product/{id}','ProductController@getOneProduct');
 
 Route::post('/register', 'UserController@register');
 Route::post('/login', 'UserController@login');

@@ -9,13 +9,6 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    public function formatImage($file){
-        $extension = $file->getClientOriginalExtension();
-        $filename = time() . '.' . $extension;
-        $file->move('storage', $filename);
-        $link = asset('storage/'.$filename);
-        return $link;
-    }
     public function getALl(){
         $products = Product::all();
         return response()->json([
@@ -79,26 +72,6 @@ class ProductController extends Controller
         $product->type_id = $fields['type_id'];
         $product->user_id = $user_id;
 
-        /*$product = Product::create([
-            'name' => $fields['name'],
-            'image_url' => $image_url,
-            'expires_at' => $expires_at,
-            'contact_info' => $fields['contact_info'],
-            'description' => $fields['description'],
-            'product_count' => $fields['product_count'],
-            'days_before_discount_1' => $fields['days_before_discount_1'],
-            'discount_1' => $fields['discount_1'],
-            'days_before_discount_2' => $fields['days_before_discount_2'],
-            'discount_2' => $fields['discount_2'],
-            'viewed_users' => $empty_array,
-            'liked_users' => $empty_array,
-            'comments' => $empty_array,
-            'price' => $fields['price'],
-            'type_id' => $fields['type_id'],
-            'user_id' => 1
-
-        ]);*/
-
         $product->save();
         return response() -> json([
             'msg' => 'Success!',
@@ -106,47 +79,58 @@ class ProductController extends Controller
         ]);
     }
 
-    public function getAllNandP(){
+    public function getAllProducts(){
 
+        return response()->json([
+            'user' => auth()->user()
+        ]);
     }
 
     public function searchByFilter(Request $request){
         $name = ($request->input('name') ? $request->input('name'): "");
-        $classification = ($request->input('classification') ? $request->input('classification'): "");
+        $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
         $time = strtotime($expires_at);
         $expires_at_formatted = date('Y-m-d',$time);
 
         $products = Product::where('name','like','%'.$name.'%')
-        ->where('classification' ,'like', '%'.$classification.'%')
+        ->where('type_id' ,'like', '%'.$type_id.'%')
         ->where('expires_at', '<=', $expires_at_formatted)
         ->get();
         return response() -> json([
         'msg' => 'Success!',
         'hits' => count($products),
-        'products' => $products
+        'products' => $products //! cant return product we need to return modified version
     ]);
     }
 
-    public function getOneProduct($id){
-        if($product = DB::table('products')->where('id',$id))
+    public function getOneProduct($id){ // get user's products 
+        $product = Product::find($id);
+        if(!$product)
         {
-            if($product->get(''))
-            return response()->json($product->get());
+            return response() -> json([
+                'msg' => 'Provide Valid Id'
+            ]);
         }
-        else
-        {
-            return response(['Invalid ID!']);
-        }
+        return response()->json([
+            'msg' => 'Returned Successfully',
+            'product' => $product
+        ]);
     }
 
     public function deleteOneProduct($id){
-        // return Product::destroy($id)  => returns 1 if deleted and 0 if not  /test it!
-        //! check if same token 
         $product = Product::find($id);
+        $product_user_id = $product->user_id;
+        $user = auth()->user();
+        $user_id = $user['id'];
         if(!$product){
             return response() -> json([
                 'msg' => 'Provide Valid Id'
+            ]);
+        }
+        if($product_user_id !== $user_id){
+            return response() -> json([
+                'msg' => 'You can not delete this product'
             ]);
         }
         $product->delete();
@@ -157,8 +141,76 @@ class ProductController extends Controller
     
     public function updateOneProduct(Request $request,$id){
         DB::table('products')
-        ->where('id',$id)
+        ->where('id',$id) // check if id is correct
         ->update($request->all());
-        return response(['Success!']);
+        return response()->json([
+            'msg' => 'sucess!',
+            'product' => $product
+        ]);
+    }
+
+    
+    public function likeProduct($id, Request $request){
+        $product = Product::find($id);
+        if(!$product){
+            return response() -> json([
+                'msg' => 'Provide Valid Id'
+            ]);
+        }
+        $likes = $product->liked_users;
+        $likes = json_decode($likes);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $found = 0;
+        for($i=0;$i<count($likes);$i++)
+        {
+            error_log($likes[$i]);
+            if($likes[$i] === $user_id)
+            {
+                error_log('hi');
+                unset($likes[$i]);
+                $found =1;
+            }
+        }
+        if($found === 0)
+        {
+            array_push($likes,$user_id);
+        }
+        $likes = json_encode($likes);
+        $product->liked_users = $likes;
+        $product->update();
+        return response() -> json([
+            'msg' => 'success',
+            'likes' => $likes
+        ]);
+    }
+
+    public function viewProduct($id){
+        $product = Product::find($id);
+        if(!$product){
+            return response() -> json([
+                'msg' => 'Provide Valid Id'
+            ]);
+        }
+        $views = $product->viewed_users;
+        $views = json_decode($views);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $found = 0;
+        for($i=0;$i<count($views);$i++){
+            if($views[$i] === $user_id){
+                $found =1;
+            }
+        }
+        if($found === 0){
+            array_push($views,$user_id);
+        }
+        $views = json_encode($views);
+        $product->viewed_users = $views;
+        $product->update();
+        return response() -> json([
+            'msg' => 'success',
+            'viewed' => $views
+        ]);
     }
 }

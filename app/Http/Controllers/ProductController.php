@@ -9,7 +9,7 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    public function getALl(){
+    public function getAll(){
         $products = Product::all();
         return response()->json([
             'hits' => count($products),
@@ -45,7 +45,7 @@ class ProductController extends Controller
         // prep date
         $time = strtotime($request->input('expires_at'));
         $expires_at = date('Y-m-d',$time);
-        
+
         // prep empty json for likes..
         $empty_array = array();
         $empty_array = json_encode($empty_array);
@@ -54,7 +54,7 @@ class ProductController extends Controller
         $user = auth()->user();
         $user_id = $user['id'];
 
-        // create product 
+        // create product
         $product = new Product();
         $product->name = $fields['name'];
         $product->image_url = $image_url;
@@ -104,7 +104,7 @@ class ProductController extends Controller
     ]);
     }
 
-    public function getOneProduct($id){ // get user's products 
+    public function getOneProduct($id){ // get user's products
         $product = Product::find($id);
         if(!$product)
         {
@@ -138,8 +138,9 @@ class ProductController extends Controller
             'msg' => 'Deleted Successfully'
         ]);
     }
-    
+
     public function updateOneProduct(Request $request,$id){
+        $product =Product::find($id);
         DB::table('products')
         ->where('id',$id) // check if id is correct
         ->update($request->all());
@@ -149,7 +150,7 @@ class ProductController extends Controller
         ]);
     }
 
-    
+
     public function likeProduct($id, Request $request){
         $product = Product::find($id);
         if(!$product){

@@ -9,7 +9,7 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    public function getAll(){
+    public function getAllProducts(){
         $products = Product::all();
         return response()->json([
             'hits' => count($products),
@@ -79,10 +79,13 @@ class ProductController extends Controller
         ]);
     }
 
-    public function getAllProducts(){
-
+    public function getMyProducts($id){
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $products = Product::where('user_id',$user_id)->get();
         return response()->json([
-            'user' => auth()->user()
+            'user' => $user_id,
+            'products' => $products
         ]);
     }
 
@@ -112,6 +115,10 @@ class ProductController extends Controller
                 'msg' => 'Provide Valid Id'
             ]);
         }
+        $this->viewProduct($id);
+        $product = Product::find($id);
+        $product->liked_users = count(json_decode($product->liked_users));
+        $product->viewed_users = count(json_decode($product->viewed_users));
         return response()->json([
             'msg' => 'Returned Successfully',
             'product' => $product
@@ -212,6 +219,56 @@ class ProductController extends Controller
         return response() -> json([
             'msg' => 'success',
             'viewed' => $views
+        ]);
+    }
+    public function comment($id,Request $request)
+    {
+        $product = Product::find($id);
+        $comment = $request ->input('comment');
+        $comments =$product['comments'];
+        $comments = json_decode($comments);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $comment_after['id'] = count($comments)+1;
+        $comment_after['user_id'] = $user_id;
+        $comment_after['comment'] = $comment;
+        array_push($comments,$comment_after);
+        $comments = json_encode($comments);
+        $product['comments'] = $comments;
+        $product->update();
+        return response()->json([
+            'msg' => 'Success',
+            'product' => $product
+        ]);
+    }
+    public function deletecomment($id,Request $request)
+    {
+        $commentid = $request->input('comment_id');
+        $product = Product::find($id);
+        $comments = $product['comments'];
+        $comments = json_decode($comments);
+        $found = 0;
+        for($i=0;$i<count($comments);$i++)
+        {
+            if($comments[$i]->id === $commentid)
+            {
+                unset($comments[$i]);
+                $found = 1;
+                break;
+            }
+        }
+        if($found === 0)
+        {
+            return response()->json([
+                'msg' => 'Not Found!'
+            ]);
+        }
+        $comments = json_encode($comments);
+        $product->comments = $comments;
+        $product->update();
+        return response()->json([
+            'msg' => 'Success',
+            'product' => $product
         ]);
     }
 }

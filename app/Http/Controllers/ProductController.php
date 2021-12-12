@@ -80,7 +80,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function getMyProducts($id){
+    public function getUserProducts(){
         $user = auth()->user();
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
@@ -110,8 +110,7 @@ class ProductController extends Controller
 
     public function getOneProduct($id){ // get user's products
         $product = Product::find($id);
-        if(!$product)
-        {
+        if(!$product){
             return response() -> json([
                 'msg' => 'Provide Valid Id'
             ]);
@@ -222,7 +221,7 @@ class ProductController extends Controller
             'viewed' => $views
         ]);
     }
-    public function comment($id,Request $request)
+    public function commentOnProduct($id,Request $request)
     {
         $product = Product::find($id);
         $comment = $request ->input('comment');
@@ -242,7 +241,7 @@ class ProductController extends Controller
             'product' => $product
         ]);
     }
-    public function deletecomment($id,Request $request)
+    public function deleteComment($id,Request $request)
     {
         $commentid = $request->input('comment_id');
         $product = Product::find($id);

@@ -32,7 +32,7 @@ class ProductController extends Controller
             'days_before_discount_2' => 'required|numeric',
             'discount_2' => 'required|numeric',
             'price' => 'required|numeric',
-            'type_id' => 'required|numeric'
+            'type_id' => 'required|numeric',
         ]);
         // prep image url
         $file = $fields['image'];
@@ -71,6 +71,7 @@ class ProductController extends Controller
         $product->price = $fields['price'];
         $product->type_id = $fields['type_id'];
         $product->user_id = $user_id;
+        if($fields['product_count']) $product->product_count = $fields['product_count'];
 
         $product->save();
         return response() -> json([
@@ -212,5 +213,8 @@ class ProductController extends Controller
             'msg' => 'success',
             'viewed' => $views
         ]);
+    }
+    public function commentOnProduct($id, Request $request){
+        
     }
 }

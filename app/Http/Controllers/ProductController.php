@@ -9,7 +9,7 @@ use App\Models\Product;
 
 class ProductController extends Controller
 {
-    public function getALl(){
+    public function getAllProducts(){
         $products = Product::all();
         return response()->json([
             'hits' => count($products),
@@ -45,7 +45,7 @@ class ProductController extends Controller
         // prep date
         $time = strtotime($request->input('expires_at'));
         $expires_at = date('Y-m-d',$time);
-        
+
         // prep empty json for likes..
         $empty_array = array();
         $empty_array = json_encode($empty_array);
@@ -54,7 +54,7 @@ class ProductController extends Controller
         $user = auth()->user();
         $user_id = $user['id'];
 
-        // create product 
+        // create product
         $product = new Product();
         $product->name = $fields['name'];
         $product->image_url = $image_url;
@@ -80,10 +80,13 @@ class ProductController extends Controller
         ]);
     }
 
-    public function getAllProducts(){
-
+    public function getMyProducts($id){
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $products = Product::where('user_id',$user_id)->get();
         return response()->json([
-            'user' => auth()->user()
+            'user' => $user_id,
+            'products' => $products
         ]);
     }
 
@@ -105,7 +108,7 @@ class ProductController extends Controller
     ]);
     }
 
-    public function getOneProduct($id){ // get user's products 
+    public function getOneProduct($id){ // get user's products
         $product = Product::find($id);
         if(!$product)
         {
@@ -113,6 +116,10 @@ class ProductController extends Controller
                 'msg' => 'Provide Valid Id'
             ]);
         }
+        $this->viewProduct($id);
+        $product = Product::find($id);
+        $product->liked_users = count(json_decode($product->liked_users));
+        $product->viewed_users = count(json_decode($product->viewed_users));
         return response()->json([
             'msg' => 'Returned Successfully',
             'product' => $product
@@ -139,8 +146,9 @@ class ProductController extends Controller
             'msg' => 'Deleted Successfully'
         ]);
     }
-    
+
     public function updateOneProduct(Request $request,$id){
+        $product =Product::find($id);
         DB::table('products')
         ->where('id',$id) // check if id is correct
         ->update($request->all());
@@ -150,7 +158,7 @@ class ProductController extends Controller
         ]);
     }
 
-    
+
     public function likeProduct($id, Request $request){
         $product = Product::find($id);
         if(!$product){
@@ -214,7 +222,54 @@ class ProductController extends Controller
             'viewed' => $views
         ]);
     }
-    public function commentOnProduct($id, Request $request){
-        
+    public function comment($id,Request $request)
+    {
+        $product = Product::find($id);
+        $comment = $request ->input('comment');
+        $comments =$product['comments'];
+        $comments = json_decode($comments);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $comment_after['id'] = count($comments)+1;
+        $comment_after['user_id'] = $user_id;
+        $comment_after['comment'] = $comment;
+        array_push($comments,$comment_after);
+        $comments = json_encode($comments);
+        $product['comments'] = $comments;
+        $product->update();
+        return response()->json([
+            'msg' => 'Success',
+            'product' => $product
+        ]);
+    }
+    public function deletecomment($id,Request $request)
+    {
+        $commentid = $request->input('comment_id');
+        $product = Product::find($id);
+        $comments = $product['comments'];
+        $comments = json_decode($comments);
+        $found = 0;
+        for($i=0;$i<count($comments);$i++)
+        {
+            if($comments[$i]->id === $commentid)
+            {
+                unset($comments[$i]);
+                $found = 1;
+                break;
+            }
+        }
+        if($found === 0)
+        {
+            return response()->json([
+                'msg' => 'Not Found!'
+            ]);
+        }
+        $comments = json_encode($comments);
+        $product->comments = $comments;
+        $product->update();
+        return response()->json([
+            'msg' => 'Success',
+            'product' => $product
+        ]);
     }
 }

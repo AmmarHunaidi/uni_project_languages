@@ -17,7 +17,7 @@ class CreateProductsTable extends Migration
             $table->id();
             $table->timestamps();
             $table->string('name');
-            $table->text('image_url');
+            $table->text('image_url')->nullable();
             $table->date('expires_at'); // yyyy-mm-dd
             $table->string('contact_info');
             $table->string('description'); // maybe switch to text?

@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
+use Carbon\Carbon;
+use DateTime;
 
 class ProductController extends Controller
 {
@@ -119,6 +121,15 @@ class ProductController extends Controller
         $product = Product::find($id);
         $product->liked_users = count(json_decode($product->liked_users));
         $product->viewed_users = count(json_decode($product->viewed_users));
+        $expire = $product->expires_at;
+        if(now()->diffInDays($expire) <= $product->days_before_discount_2)
+        {
+            $product->price = $product->price - ($product->price * $product->discount_2 /100);
+        }
+        else if(now()->diffInDays($expire) <= $product->days_before_discount_1)
+        {
+            $product->price = $product->price - ($product->price * $product->discount_1 /100);
+        }
         return response()->json([
             'msg' => 'Returned Successfully',
             'product' => $product

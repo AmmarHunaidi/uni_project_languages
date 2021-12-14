@@ -34,7 +34,7 @@ class ProductController extends Controller
             'days_before_discount_2' => 'required|numeric',
             'discount_2' => 'required|numeric',
             'price' => 'required|numeric',
-            'type_id' => 'required|numeric'
+            'type_id' => 'required|numeric',
         ]);
         // prep image url
         $file = $fields['image'];
@@ -73,6 +73,7 @@ class ProductController extends Controller
         $product->price = $fields['price'];
         $product->type_id = $fields['type_id'];
         $product->user_id = $user_id;
+        if($fields['product_count']) $product->product_count = $fields['product_count'];
 
         $product->save();
         return response() -> json([
@@ -81,7 +82,7 @@ class ProductController extends Controller
         ]);
     }
 
-    public function getMyProducts($id){
+    public function getUserProducts(){
         $user = auth()->user();
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
@@ -111,8 +112,7 @@ class ProductController extends Controller
 
     public function getOneProduct($id){ // get user's products
         $product = Product::find($id);
-        if(!$product)
-        {
+        if(!$product){
             return response() -> json([
                 'msg' => 'Provide Valid Id'
             ]);
@@ -232,7 +232,7 @@ class ProductController extends Controller
             'viewed' => $views
         ]);
     }
-    public function comment($id,Request $request)
+    public function commentOnProduct($id,Request $request)
     {
         $product = Product::find($id);
         $comment = $request ->input('comment');
@@ -252,7 +252,7 @@ class ProductController extends Controller
             'product' => $product
         ]);
     }
-    public function deletecomment($id,Request $request)
+    public function deleteComment($id,Request $request)
     {
         $commentid = $request->input('comment_id');
         $product = Product::find($id);

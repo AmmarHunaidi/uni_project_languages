@@ -282,4 +282,11 @@ class ProductController extends Controller
             'product' => $product
         ]);
     }
+    public function getAllProductsTest(){
+        $products = Product::all();
+        return response()->json([
+            'hits' => count($products),
+            'products' => $products
+        ]);
+    }
 }

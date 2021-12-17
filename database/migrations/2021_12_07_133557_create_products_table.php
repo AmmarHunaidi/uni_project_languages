@@ -20,7 +20,7 @@ class CreateProductsTable extends Migration
             $table->text('image_url')->nullable();
             $table->date('expires_at'); // yyyy-mm-dd
             $table->string('contact_info');
-            $table->string('description'); // maybe switch to text?
+            $table->text('description');
             $table->integer('product_count')->default(1);
             $table->integer('days_before_discount_1');
             $table->integer('discount_1');

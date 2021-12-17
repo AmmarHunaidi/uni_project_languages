@@ -29,12 +29,11 @@ Route::middleware('auth:sanctum')->post('/product/view/{id}','ProductController@
 Route::middleware('auth:sanctum')->post('/product/comment/{id}','ProductController@commentOnProduct');
 Route::middleware('auth:sanctum')->delete('/product/comment/{id}','ProductController@deleteComment');
 
-//--test
-Route::middleware('auth:sanctum')->get('/product/test','ProductController@getAllProductsTest');
-//--end
 
 
-Route::middleware('auth:sanctum')->post('logout','UserController@logout');
+Route::middleware('auth:sanctum')->post('/logout','UserController@logout');
+Route::middleware('auth:sanctum')->post('/user','UserController@editUser');
+
 
 Route::post('/register', 'UserController@register');
 Route::post('/login', 'UserController@login');

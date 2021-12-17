@@ -14,14 +14,14 @@ class ProductController extends Controller
     public function getAllProducts(){
         $products = Product::all();
         return response()->json([
-            'hits' => count($products),
-            'products' => $products
+            $products
         ]);
     }
 
     public function createNewProduct(Request $request){
+        //TODO discount1 < discount 2
+        //TODO fix the type thing
         $product = new Product();
-        $error = array();
         $fields = $request->validate([
             'name' => 'required|string',
             'image' => 'required|image',
@@ -77,8 +77,7 @@ class ProductController extends Controller
 
         $product->save();
         return response() -> json([
-            'msg' => 'Success!',
-            'product' => $product,
+            'message' => 'Success',
         ]);
     }
 
@@ -93,6 +92,7 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
+        //TODO return products as the modified verision
         $name = ($request->input('name') ? $request->input('name'): "");
         $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
@@ -104,13 +104,12 @@ class ProductController extends Controller
         ->where('expires_at', '<=', $expires_at_formatted)
         ->get();
         return response() -> json([
-        'msg' => 'Success!',
-        'hits' => count($products),
-        'products' => $products //! cant return product we need to return modified version
-    ]);
+            $products 
+        ]);
     }
 
-    public function getOneProduct($id){ // get user's products
+    public function getOneProduct($id){
+        // add view logic in get one product
         $product = Product::find($id);
         if(!$product){
             return response() -> json([
@@ -122,12 +121,10 @@ class ProductController extends Controller
         $product->liked_users = count(json_decode($product->liked_users));
         $product->viewed_users = count(json_decode($product->viewed_users));
         $expire = $product->expires_at;
-        if(now()->diffInDays($expire) <= $product->days_before_discount_2)
-        {
+        if(now()->diffInDays($expire) <= $product->days_before_discount_2){
             $product->price = $product->price - ($product->price * $product->discount_2 /100);
         }
-        else if(now()->diffInDays($expire) <= $product->days_before_discount_1)
-        {
+        else if(now()->diffInDays($expire) <= $product->days_before_discount_1){
             $product->price = $product->price - ($product->price * $product->discount_1 /100);
         }
         return response()->json([
@@ -137,37 +134,27 @@ class ProductController extends Controller
     }
 
     public function deleteOneProduct($id){
-        $product = Product::find($id);
+        $product = Product::findOrFail($id);
         $product_user_id = $product->user_id;
         $user = auth()->user();
         $user_id = $user['id'];
-        if(!$product){
-            return response() -> json([
-                'msg' => 'Provide Valid Id'
-            ]);
-        }
-        if($product_user_id !== $user_id){
-            return response() -> json([
-                'msg' => 'You can not delete this product'
-            ]);
-        }
         $product->delete();
         return response() -> json([
-            'msg' => 'Deleted Successfully'
+            'message' => 'Success'
         ]);
     }
 
     public function updateOneProduct(Request $request,$id){
+        // tawfeek resends everything
         $product =Product::find($id);
         DB::table('products')
-        ->where('id',$id) // check if id is correct
+        ->where('id',$id)
         ->update($request->all());
         return response()->json([
             'msg' => 'sucess!',
             'product' => $product
         ]);
     }
-
 
     public function likeProduct($id, Request $request){
         $product = Product::find($id);
@@ -199,12 +186,12 @@ class ProductController extends Controller
         $product->liked_users = $likes;
         $product->update();
         return response() -> json([
-            'msg' => 'success',
-            'likes' => $likes
+            'message' => 'Success',
         ]);
     }
 
     public function viewProduct($id){
+        //move to get one product
         $product = Product::find($id);
         if(!$product){
             return response() -> json([
@@ -248,8 +235,7 @@ class ProductController extends Controller
         $product['comments'] = $comments;
         $product->update();
         return response()->json([
-            'msg' => 'Success',
-            'product' => $product
+            'message' => 'Success'
         ]);
     }
     public function deleteComment($id,Request $request)
@@ -280,13 +266,6 @@ class ProductController extends Controller
         return response()->json([
             'msg' => 'Success',
             'product' => $product
-        ]);
-    }
-    public function getAllProductsTest(){
-        $products = Product::all();
-        return response()->json([
-            'hits' => count($products),
-            'products' => $products
         ]);
     }
 }

@@ -6,11 +6,70 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
+use App\Models\Type;
 use Carbon\Carbon;
 use DateTime;
 
 class ProductController extends Controller
 {
+    //helper functions
+    private function getImageUrl($file){
+        $extension = $file->getClientOriginalExtension();
+        $filename = time() . '.' . $extension;
+        $file->move('storage', $filename);
+        $link = asset('storage/'.$filename);
+        return $link;
+    }
+    private function getModifiedProducts($products, $user_id){
+        $modified_products = array();
+        for($i=0 ;$i<count($products); $i++){
+            //set suitable price
+            $price = 0;
+            $expire = $products[$i]->expires_at;
+            if(now()->diffInDays($expire) <= $products[$i]->days_before_discount_2){
+                $price = $products[$i]->price - ($products[$i]->price * $producst[$i]->discount_2 /100);
+            }
+            else if(now()->diffInDays($expire) <= $products[$i]->days_before_discount_1){
+                $price = $products[$i]->price - ($products[$i]->price * $products[$i]->discount_1 /100);
+            }
+            // check if this user likes this product
+            $liked_users = json_decode($products[$i]->liked_users);
+            $isLiked = false;
+            for($j=0; $j<count($liked_users);$j++){
+                if($liked_users[$j] === $user_id){
+                    $isLiked = true;
+                    break;
+                }
+            }
+            // check if this user is the owner if this product
+            $is_owner = false;
+            if($user_id === $products[$i]->user_id) $is_owner = true;
+
+            //get type name 
+            $type = Type::find($products[$i]->type_id);
+
+            $modified_products[$i] = array(
+                'id' => $products[$i]->id,
+                'name' => $products[$i]->name,
+                'price' => $price,
+                'original_price' => $products[$i]->price,
+                'image_url' => $products[$i]->image_url,
+                'view_count' => count(json_decode($products[$i]->viewed_users)),
+                'like_count' => count(json_decode($products[$i]->liked_users)),
+                'isLiked' => $isLiked,
+                'description' => $products[$i]->description,
+                'comments' => $products[$i]->comments,
+                'type' => $type->name,
+                'is_owner' => $is_owner,
+                'contact_info' => $products[$i]->contact_info,
+                'product_count' => $products[$i]->product_count,
+                'expires_at' => $products[$i]->expires_at
+            );
+        }
+        return $modified_products;
+    }
+
+    // apis
     public function getAllProducts(){
         $products = Product::all();
         return response()->json([
@@ -19,8 +78,6 @@ class ProductController extends Controller
     }
 
     public function createNewProduct(Request $request){
-        //TODO discount1 < discount 2
-        //TODO fix the type thing
         $product = new Product();
         $fields = $request->validate([
             'name' => 'required|string',
@@ -34,15 +91,10 @@ class ProductController extends Controller
             'days_before_discount_2' => 'required|numeric',
             'discount_2' => 'required|numeric',
             'price' => 'required|numeric',
-            'type_id' => 'required|numeric',
+            'type' => 'required|string',
         ]);
         // prep image url
-        $file = $fields['image'];
-        $extension = $file->getClientOriginalExtension();
-        $filename = time() . '.' . $extension;
-        $file->move('storage', $filename);
-        $link = asset('storage/'.$filename);
-        $image_url = $link;
+        $image_url = ProductController::getImageUrl($fields['image']);
 
         // prep date
         $time = strtotime($request->input('expires_at'));
@@ -51,6 +103,29 @@ class ProductController extends Controller
         // prep empty json for likes..
         $empty_array = array();
         $empty_array = json_encode($empty_array);
+
+        // make days_before_discount_1 less than days_before_discount_2
+        if($fields['days_before_discount_1'] > $fields['days_before_discount_2']){
+            $temp1 = $fields['days_before_discount_1'];
+            $temp2 = $fields['discount_1'];
+            $fields['days_before_discount_1'] = $fields['days_before_discount_2'];
+            $fields['discount_1'] = $fields['discount_2'];
+            $fields['days_before_discount_2'] = $temp1;
+            $fields['discount_2'] = $temp2;
+        }
+
+        //get type or add this type to tyoe table
+        $fields['type'] = strtolower($fields['type']);
+        $type = Type::where('name',$fields['type'])->first();
+        if(!$type){
+            $type = Type::create([
+                'name' => $fields['type']
+            ]);
+        }
+        else{
+            $type->update(['count'=>($type->count+1)]);
+        }
+        $type_id = $type->id;
 
         //get user id
         $user = auth()->user();
@@ -71,7 +146,7 @@ class ProductController extends Controller
         $product->liked_users = $empty_array;
         $product->comments = $empty_array;
         $product->price = $fields['price'];
-        $product->type_id = $fields['type_id'];
+        $product->type_id = $type_id;
         $product->user_id = $user_id;
         if($fields['product_count']) $product->product_count = $fields['product_count'];
 
@@ -92,7 +167,6 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
-        //TODO return products as the modified verision
         $name = ($request->input('name') ? $request->input('name'): "");
         $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
@@ -103,8 +177,12 @@ class ProductController extends Controller
         ->where('type_id' ,'like', '%'.$type_id.'%')
         ->where('expires_at', '<=', $expires_at_formatted)
         ->get();
+
+        $user = auth()->user();
+        $user_id = $user['id'];
+
         return response() -> json([
-            $products 
+            ProductController::getModifiedProducts($products,$user_id)
         ]);
     }
 
@@ -134,7 +212,13 @@ class ProductController extends Controller
     }
 
     public function deleteOneProduct($id){
-        $product = Product::findOrFail($id);
+        $product = Product::find($id);
+        if(!$product){
+            return response() -> json([
+                'message' => 'error',
+                'error' => 'Provide Valid Id'
+            ]);
+        }
         $product_user_id = $product->user_id;
         $user = auth()->user();
         $user_id = $user['id'];

@@ -20,18 +20,23 @@ class ProductController extends Controller
         $link = asset('storage/'.$filename);
         return $link;
     }
+    private function getProductPrice($product){
+        $expire = $product->expires_at;
+        $dif =now()->diffInDays($expire);
+        if(now()->diffInDays($expire) <= $product->days_before_discount_2){
+            $price = $product->price - ($product->price * $product->discount_2 /100);
+        }
+        else if(now()->diffInDays($expire) <= $product->days_before_discount_1){
+            $price = $product->price - ($product->price * $product->discount_1 /100);
+        }
+        else{
+            $price = $product->price;
+        }
+        return $price;
+    }
     private function getModifiedProducts($products, $user_id){
         $modified_products = array();
         for($i=0 ;$i<count($products); $i++){
-            //set suitable price
-            $price = 0;
-            $expire = $products[$i]->expires_at;
-            if(now()->diffInDays($expire) <= $products[$i]->days_before_discount_2){
-                $price = $products[$i]->price - ($products[$i]->price * $producst[$i]->discount_2 /100);
-            }
-            else if(now()->diffInDays($expire) <= $products[$i]->days_before_discount_1){
-                $price = $products[$i]->price - ($products[$i]->price * $products[$i]->discount_1 /100);
-            }
             // check if this user likes this product
             $liked_users = json_decode($products[$i]->liked_users);
             $isLiked = false;
@@ -51,7 +56,7 @@ class ProductController extends Controller
             $modified_products[$i] = array(
                 'id' => $products[$i]->id,
                 'name' => $products[$i]->name,
-                'price' => $price,
+                'price' => ProductController::getProductPrice($products[$i]),
                 'original_price' => $products[$i]->price,
                 'image_url' => $products[$i]->image_url,
                 'view_count' => count(json_decode($products[$i]->viewed_users)),
@@ -105,7 +110,7 @@ class ProductController extends Controller
         $empty_array = json_encode($empty_array);
 
         // make days_before_discount_1 less than days_before_discount_2
-        if($fields['days_before_discount_1'] > $fields['days_before_discount_2']){
+        if($fields['days_before_discount_1'] < $fields['days_before_discount_2']){
             $temp1 = $fields['days_before_discount_1'];
             $temp2 = $fields['discount_1'];
             $fields['days_before_discount_1'] = $fields['days_before_discount_2'];
@@ -157,6 +162,7 @@ class ProductController extends Controller
     }
 
     public function getUserProducts(){
+        //TODO convert products to modified products
         $user = auth()->user();
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
@@ -187,7 +193,8 @@ class ProductController extends Controller
     }
 
     public function getOneProduct($id){
-        // add view logic in get one product
+        //TODO add view logic in get one product
+        //TODO convert product to modified version
         $product = Product::find($id);
         if(!$product){
             return response() -> json([
@@ -230,13 +237,13 @@ class ProductController extends Controller
 
     public function updateOneProduct(Request $request,$id){
         // tawfeek resends everything
+        //TODO what if theu want to edit photo
         $product =Product::find($id);
         DB::table('products')
         ->where('id',$id)
         ->update($request->all());
         return response()->json([
-            'msg' => 'sucess!',
-            'product' => $product
+            'message' => 'Sucess'
         ]);
     }
 
@@ -244,7 +251,8 @@ class ProductController extends Controller
         $product = Product::find($id);
         if(!$product){
             return response() -> json([
-                'msg' => 'Provide Valid Id'
+                'message' => 'error',
+                'error' => 'Provide valid ID'
             ]);
         }
         $likes = $product->liked_users;
@@ -348,8 +356,7 @@ class ProductController extends Controller
         $product->comments = $comments;
         $product->update();
         return response()->json([
-            'msg' => 'Success',
-            'product' => $product
+            'message' => 'Success'
         ]);
     }
 }

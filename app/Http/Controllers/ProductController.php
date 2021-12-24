@@ -56,19 +56,23 @@ class ProductController extends Controller
             $modified_products[$i] = array(
                 'id' => $products[$i]->id,
                 'name' => $products[$i]->name,
+                'image_url' => $products[$i]->image_url,
+                'expires_at' => $products[$i]->expires_at,
+                'type' => $type->name,
+                'product_count' => $products[$i]->product_count,
                 'price' => ProductController::getProductPrice($products[$i]),
                 'original_price' => $products[$i]->price,
-                'image_url' => $products[$i]->image_url,
+                'contact_info' => $products[$i]->contact_info,
+                'discount_1' => $products[$i]->discount_1,
+                'discount_2' => $products[$i]->discount_2,
+                'days_before_discount_1' => $products[$i]->days_before_discount_1,
+                'days_before_dsicount_2' => $products[$i]->days_before_discount_2,
                 'view_count' => count(json_decode($products[$i]->viewed_users)),
                 'like_count' => count(json_decode($products[$i]->liked_users)),
                 'isLiked' => $isLiked,
                 'description' => $products[$i]->description,
-                'comments' => $products[$i]->comments,
-                'type' => $type->name,
                 'is_owner' => $is_owner,
-                'contact_info' => $products[$i]->contact_info,
-                'product_count' => $products[$i]->product_count,
-                'expires_at' => $products[$i]->expires_at
+                'comments' => $products[$i]->comments,
             );
         }
         return $modified_products;

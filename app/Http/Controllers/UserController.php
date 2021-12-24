@@ -29,10 +29,12 @@ class UserController extends Controller
 
         $token = $user->createToken('myapptoken')->plainTextToken;
         User::where('id',$user['id'])->update(['remember_token'=>$token]);
+        $created_user = User::find($user['id']);
         return response() -> json([
             'email' => $user->email,
             'name' => $user->name,
-            'token' => $token
+            'token' => $token,
+            'image_url' => $created_user->image_url
         ]);
     }
 
@@ -48,8 +50,10 @@ class UserController extends Controller
         //check password
         if(!$user || !Hash::check($fields['password'],$user->password)){
             return response() -> json([
-                'message' => 'error',
-                'error' => 'Invalid email or password'
+                'message' => 'the given data was invalid',
+                'errors' => [
+                    'email' =>'Invalid email or password'
+                ]
             ],401);
         }
 
@@ -58,7 +62,8 @@ class UserController extends Controller
         return response() -> json([
             'email' => $user->email,
             'name' => $user->name,
-            'token' => $token
+            'token' => $token,
+            'image_url' => $user->image_url
         ]);
     }
 
@@ -88,6 +93,6 @@ class UserController extends Controller
         return response() -> json([
             'message' => 'Success',
             'image_url' => $image_url
-        ]);
+        ],200);
     }
 }

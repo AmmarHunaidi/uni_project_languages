@@ -20,7 +20,7 @@ class CreateUsersTable extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->text('phone_number');
-            $table->text('image_url')->nullable();
+            $table->text('image_url')->default("https://yt3.ggpht.com/ytc/AKedOLRbCpTpIWM-B-vlkNQTQ7zgb2vtMDMPkELrPiQrCA=s900-c-k-c0x00ffffff-no-rj");
             $table->rememberToken();
             $table->timestamps();
         });

@@ -166,13 +166,11 @@ class ProductController extends Controller
     }
 
     public function getUserProducts(){
-        //TODO convert products to modified products
         $user = auth()->user();
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
         return response()->json([
-            'user' => $user_id,
-            'products' => $products
+            'products' => getModifiedProducts($products)
         ]);
     }
 

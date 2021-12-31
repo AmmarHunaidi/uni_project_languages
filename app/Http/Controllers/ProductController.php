@@ -50,7 +50,7 @@ class ProductController extends Controller
             $is_owner = false;
             if($user_id === $products[$i]->user_id) $is_owner = true;
 
-            //get type name 
+            //get type name
             $type = Type::find($products[$i]->type_id);
 
             $modified_products[$i] = array(
@@ -170,7 +170,7 @@ class ProductController extends Controller
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
         return response()->json([
-            'products' => getModifiedProducts($products)
+            'products' => ProductController::getModifiedProducts($products,$user_id)
         ]);
     }
 

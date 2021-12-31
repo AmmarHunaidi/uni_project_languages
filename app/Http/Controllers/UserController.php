@@ -19,7 +19,6 @@ class UserController extends Controller
             'password' => 'required|string|confirmed',
             'phone_number' => 'required|numeric'
         ]);
-        error_log($fields['phone_number']);
         $user = User::create([
             'name' => $fields['name'],
             'email' => $fields['email'],

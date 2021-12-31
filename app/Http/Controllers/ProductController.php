@@ -106,7 +106,7 @@ class ProductController extends Controller
         $image_url = ProductController::getImageUrl($fields['image']);
 
         // prep date
-        $time = strtotime($request->input('expires_at'));
+        $time = strtotime($request->input('expires_at')); // change to fields
         $expires_at = date('Y-m-d',$time);
 
         // prep empty json for likes..
@@ -123,7 +123,7 @@ class ProductController extends Controller
             $fields['discount_2'] = $temp2;
         }
 
-        //get type or add this type to tyoe table
+        //get type or add this type to type table
         $fields['type'] = strtolower($fields['type']);
         $type = Type::where('name',$fields['type'])->first();
         if(!$type){
@@ -175,7 +175,9 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
-        $name = ($request->input('name') ? $request->input('name'): "");
+        $input = $request->input('input'); 
+        $name = ($input? $input: "");
+        //TODO : get type id & fix name and type with inputinput only 
         $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
         $time = strtotime($expires_at);
@@ -228,9 +230,6 @@ class ProductController extends Controller
                 'error' => 'Provide Valid Id'
             ]);
         }
-        $product_user_id = $product->user_id;
-        $user = auth()->user();
-        $user_id = $user['id'];
         $product->delete();
         return response() -> json([
             'message' => 'Success'
@@ -240,7 +239,7 @@ class ProductController extends Controller
     public function updateOneProduct(Request $request,$id){
         // tawfeek resends everything
         //TODO what if theu want to edit photo
-        $product =Product::find($id);
+        $product = Product::find($id);
         DB::table('products')
         ->where('id',$id)
         ->update($request->all());

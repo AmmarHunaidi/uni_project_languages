@@ -6,21 +6,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Models\Product;
-use App\Models\Type;
 use Carbon\Carbon;
 use DateTime;
 
 class ProductController extends Controller
 {
     //helper functions
-    private function getImageUrl($file){
+    static private function getImageUrl($file){
         $extension = $file->getClientOriginalExtension();
         $filename = time() . '.' . $extension;
         $file->move('storage', $filename);
         $link = asset('storage/'.$filename);
         return $link;
     }
-    private function getProductPrice($product){
+    static private function getProductPrice($product){
         $expire = $product->expires_at;
         $dif =now()->diffInDays($expire);
         if(now()->diffInDays($expire) <= $product->days_before_discount_2){
@@ -34,7 +33,7 @@ class ProductController extends Controller
         }
         return $price;
     }
-    private function getModifiedProducts($products, $user_id){
+    static private function getModifiedProducts($products, $user_id){
         $modified_products = array();
         for($i=0 ;$i<count($products); $i++){
             // check if this user likes this product
@@ -50,15 +49,13 @@ class ProductController extends Controller
             $is_owner = false;
             if($user_id === $products[$i]->user_id) $is_owner = true;
 
-            //get type name
-            $type = Type::find($products[$i]->type_id);
 
             $modified_products[$i] = array(
                 'id' => $products[$i]->id,
                 'name' => $products[$i]->name,
                 'image_url' => $products[$i]->image_url,
                 'expires_at' => $products[$i]->expires_at,
-                'type' => $type->name,
+                'type' => $products[$i]->type,
                 'product_count' => $products[$i]->product_count,
                 'price' => ProductController::getProductPrice($products[$i]),
                 'original_price' => $products[$i]->price,
@@ -81,33 +78,97 @@ class ProductController extends Controller
     // apis
     public function getAllProducts(){
         $products = Product::all();
-        return response()->json([
-            $products
-        ]);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $modified_products = ProductController::getModifiedProducts($products,$user_id);
+        return response($modified_products);
     }
 
     public function createNewProduct(Request $request){
         $product = new Product();
-        $fields = $request->validate([
-            'name' => 'required|string',
-            'image' => 'required|image',
-            'expires_at' => 'required|string',
-            'contact_info' => 'required|string',
-            'description' => 'string',
-            'product_count' => 'numeric',
-            'days_before_discount_1' => 'required|numeric',
-            'discount_1' => 'required|numeric',
-            'days_before_discount_2' => 'required|numeric',
-            'discount_2' => 'required|numeric',
-            'price' => 'required|numeric',
-            'type' => 'required|string',
-        ]);
-        // prep image url
-        $image_url = ProductController::getImageUrl($fields['image']);
+        $errors = array();
+        $fields = array();
+        // validation 
+        //TODO : check error messages + see if dicount values are sent numeric or not
+        if($request->input('name')){
+            $fields['name'] = $request->input('name');
+        }else{
+            $errors['name'] = "Please provide name";
+        }
 
-        // prep date
-        $time = strtotime($request->input('expires_at')); // change to fields
-        $expires_at = date('Y-m-d',$time);
+        if($request->hasfile('image')){
+            $fields['image_url'] = ProductController::getImageUrl($request->file('image'));
+        }else{
+            $errors['image'] = "Please provide image";
+        }
+
+        if($request->input('expires_at')){
+            $time = strtotime($request->input('expires_at')); 
+            $fields['expires_at'] = date('Y-m-d',$time);
+        }else{
+            $errors['expires_at'] = "Please provide expiry date";
+        }
+
+        if($request->input('contact_info')){
+            $fields['contact_info'] = $request->input('contact_info');
+        } else{
+            $errors['contact_info'] = "Please provide contact info";
+        }
+
+        if($request->input('description')){
+            $fields['description'] = $request->input('description');
+        } else{
+            $fields['description'] = "";
+        }
+
+        if($request->input('product_count') /*&& is_numeric($request->input('product_count'))*/){
+            $fields['product_count'] = (int)$request->input('product_count');
+        } else{
+            $fields['product_count'] = 1;
+        }
+
+        if($request->input('days_before_discount_1')){
+            $fields['days_before_discount_1'] = $request->input('days_before_discount_1');
+        } else{
+            $errors['days_before_discount_1'] = "Please provide contact info";
+        }
+
+        if($request->input('discount_1')){
+            $fields['discount_1'] = $request->input('discount_1');
+        } else{
+            $errors['discount_1'] = "Please provide contact info";
+        }
+
+        if($request->input('days_before_discount_2')){
+            $fields['days_before_discount_2'] = $request->input('days_before_discount_2');
+        } else{
+            $errors['days_before_discount_2'] = "Please provide day_before_discount_2";
+        }
+
+        if($request->input('discount_2')){
+            $fields['discount_2'] = $request->input('discount_2');
+        } else{
+            $errors['discount_2'] = "Please provide discount_2";
+        }
+
+        error_log($request->input('price'));
+        if($request->input('price')){
+            $fields['price'] = $request->input('price');
+        } else{
+            $errors['price'] = "Please provide price";
+        }
+
+        
+        if($request->input('type')){
+            $fields['type'] = $request->input('type');
+        } else{
+            $errors['type'] = "Please provide type";
+        }
+
+        //! IF VALIDATION FAILS: 
+        if(count($errors) > 0){
+            return response($errors, 422);
+        }
 
         // prep empty json for likes..
         $empty_array = array();
@@ -123,19 +184,6 @@ class ProductController extends Controller
             $fields['discount_2'] = $temp2;
         }
 
-        //get type or add this type to type table
-        $fields['type'] = strtolower($fields['type']);
-        $type = Type::where('name',$fields['type'])->first();
-        if(!$type){
-            $type = Type::create([
-                'name' => $fields['type']
-            ]);
-        }
-        else{
-            $type->update(['count'=>($type->count+1)]);
-        }
-        $type_id = $type->id;
-
         //get user id
         $user = auth()->user();
         $user_id = $user['id'];
@@ -143,8 +191,8 @@ class ProductController extends Controller
         // create product
         $product = new Product();
         $product->name = $fields['name'];
-        $product->image_url = $image_url;
-        $product->expires_at = $expires_at;
+        $product->image_url = $fields['image_url'];
+        $product->expires_at = $fields['expires_at'];
         $product->contact_info = $fields['contact_info'];
         $product->description = $fields['description'];
         $product->days_before_discount_1 = $fields['days_before_discount_1'];
@@ -155,7 +203,7 @@ class ProductController extends Controller
         $product->liked_users = $empty_array;
         $product->comments = $empty_array;
         $product->price = $fields['price'];
-        $product->type_id = $type_id;
+        $product->type = $fields['type'];
         $product->user_id = $user_id;
         if($fields['product_count']) $product->product_count = $fields['product_count'];
 
@@ -169,31 +217,41 @@ class ProductController extends Controller
         $user = auth()->user();
         $user_id = $user['id'];
         $products = Product::where('user_id',$user_id)->get();
-        return response()->json([
-            'products' => ProductController::getModifiedProducts($products,$user_id)
-        ]);
+        $modified_products = ProductController::getModifiedProducts($products,$user_id);
+        return response($modified_products);
     }
 
     public function searchByFilter(Request $request){
+<<<<<<< HEAD
         $input = $request->input('input');
         $name = ($input? $input: "");
         //TODO : get type id & fix name and type with inputinput only
         $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
+=======
+        $input = $request->input('input'); 
+        //TODO : fix the time thingy
+>>>>>>> e53c8085876a69701a262e3588ce0caa5f567441
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
-        $time = strtotime($expires_at);
-        $expires_at_formatted = date('Y-m-d',$time);
+        $time = strtotime($input);
+        error_log($time);
+        if($time){
+            $expires_at_formatted = date('Y-m-d',$time);
+        }
+        else{
+            $expires_at_formatted = date('Y-m-d',strtotime("5000-1-1"));
+        }
 
-        $products = Product::where('name','like','%'.$name.'%')
-        ->where('type_id' ,'like', '%'.$type_id.'%')
-        ->where('expires_at', '<=', $expires_at_formatted)
+        error_log($expires_at_formatted);
+        $products = Product::where('name','like','%'.$input.'%')
+        ->orWhere('type' ,'like', '%'.$input.'%')
         ->get();
+        //->where('expires_at', '<=', $expires_at_formatted)
 
         $user = auth()->user();
         $user_id = $user['id'];
 
-        return response() -> json([
-            ProductController::getModifiedProducts($products,$user_id)
-        ]);
+        $modified_products =  ProductController::getModifiedProducts($products,$user_id);
+        return response($modified_products);
     }
     public function viewProduct($id){
         //move to get one product

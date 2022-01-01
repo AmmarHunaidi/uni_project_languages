@@ -19,6 +19,7 @@ class CreateProductsTable extends Migration
             $table->string('name');
             $table->text('image_url')->nullable();
             $table->date('expires_at'); // yyyy-mm-dd
+            $table->string('type');
             $table->string('contact_info');
             $table->text('description');
             $table->integer('product_count')->default(1);
@@ -31,7 +32,7 @@ class CreateProductsTable extends Migration
             $table->json('comments');
             $table->double('price'); // 6 decimal numbers and 5 number after decimal point
             $table->foreignId('user_id')->constrained();
-            $table->foreignId('type_id')->constrained();
+           // $table->foreignId('type_id')->constrained();
             $table->softDeletes();
         });
     }

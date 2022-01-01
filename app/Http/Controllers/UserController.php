@@ -13,16 +13,26 @@ use Laravel\Sanctum\HasApiTokens;
 class UserController extends Controller
 {
     public function register(Request $request){
+        $exists = User::where('email',$request->email)->exists();
+        if($exists)
+        {
+            error_log("Here!");
+            return response() -> json([
+                'message' => 'the given data was invalid',
+                'errors' => [
+                    'email' =>'Email already registered'
+                ]
+            ],401);
+        }
         $fields = $request->validate([
             'name' => 'required|string',
-            'email' => 'required|string|unique:users,email',
             'password' => 'required|string|confirmed',
             'phone_number' => 'required|numeric'
         ]);
-        error_log($fields['phone_number']);
+        //error_log($fields['phone_number']);
         $user = User::create([
             'name' => $fields['name'],
-            'email' => $fields['email'],
+            'email' => $request ->email,
             'phone_number' => $fields['phone_number'],
             'password' => bcrypt($fields['password'])
         ]);
@@ -38,7 +48,6 @@ class UserController extends Controller
         ]);
     }
 
-
     public function login(Request $request){
         $fields = $request->validate([
             'email' => 'required|string',
@@ -46,7 +55,7 @@ class UserController extends Controller
         ]);
         //check email
         $user = User::where('email', $fields['email'])->first();
-    
+
         //check password
         if(!$user || !Hash::check($fields['password'],$user->password)){
             return response() -> json([
@@ -59,7 +68,7 @@ class UserController extends Controller
 
         $token = $user->createToken('myapptoken')->plainTextToken;
         User::where('id',$user['id'])->update(['remember_token'=>$token]);
-        return response() -> json([
+        return response()->json_encode([
             'email' => $user->email,
             'name' => $user->name,
             'token' => $token,

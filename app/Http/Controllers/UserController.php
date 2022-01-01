@@ -29,7 +29,10 @@ class UserController extends Controller
             'password' => 'required|string|confirmed',
             'phone_number' => 'required|numeric'
         ]);
+<<<<<<< HEAD
         //error_log($fields['phone_number']);
+=======
+>>>>>>> 08ef1fed4a5cdf2c48abb20b8ddfcd42a4be7353
         $user = User::create([
             'name' => $fields['name'],
             'email' => $request ->email,

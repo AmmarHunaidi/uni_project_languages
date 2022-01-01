@@ -88,7 +88,7 @@ class ProductController extends Controller
         $product = new Product();
         $errors = array();
         $fields = array();
-        // validation 
+        // validation
         //TODO : check error messages + see if dicount values are sent numeric or not
         if($request->input('name')){
             $fields['name'] = $request->input('name');
@@ -103,7 +103,7 @@ class ProductController extends Controller
         }
 
         if($request->input('expires_at')){
-            $time = strtotime($request->input('expires_at')); 
+            $time = strtotime($request->input('expires_at'));
             $fields['expires_at'] = date('Y-m-d',$time);
         }else{
             $errors['expires_at'] = "Please provide expiry date";
@@ -158,14 +158,14 @@ class ProductController extends Controller
             $errors['price'] = "Please provide price";
         }
 
-        
+
         if($request->input('type')){
             $fields['type'] = $request->input('type');
         } else{
             $errors['type'] = "Please provide type";
         }
 
-        //! IF VALIDATION FAILS: 
+        //! IF VALIDATION FAILS:
         if(count($errors) > 0){
             return response($errors, 422);
         }
@@ -222,7 +222,11 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
-        $input = $request->input('input'); 
+        $input = $request->input('input');
+        $name = ($input? $input: "");
+        //TODO : get type id & fix name and type with inputinput only
+        $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
+        $input = $request->input('input');
         //TODO : fix the time thingy
         $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
         $time = strtotime($input);
@@ -246,41 +250,58 @@ class ProductController extends Controller
         $modified_products =  ProductController::getModifiedProducts($products,$user_id);
         return response($modified_products);
     }
-
-    public function getOneProduct($id){
-        //TODO add view logic in get one product
-        //TODO convert product to modified version
+    public function viewProduct($id){
+        //move to get one product
         $product = Product::find($id);
         if(!$product){
             return response() -> json([
                 'msg' => 'Provide Valid Id'
             ]);
         }
-        $this->viewProduct($id);
-        $product = Product::find($id);
-        $product->liked_users = count(json_decode($product->liked_users));
-        $product->viewed_users = count(json_decode($product->viewed_users));
-        $expire = $product->expires_at;
-        if(now()->diffInDays($expire) <= $product->days_before_discount_2){
-            $product->price = $product->price - ($product->price * $product->discount_2 /100);
+        $views = $product->viewed_users;
+        $views = json_decode($views);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $found = 0;
+        for($i=0;$i<count($views);$i++){
+            if($views[$i] === $user_id){
+                $found =1;
+            }
         }
-        else if(now()->diffInDays($expire) <= $product->days_before_discount_1){
-            $product->price = $product->price - ($product->price * $product->discount_1 /100);
+        if($found === 0){
+            array_push($views,$user_id);
         }
+        $views = json_encode($views);
+        $product->viewed_users = $views;
+        $product->update();
+        return response() -> json([
+            'msg' => 'success',
+            'viewed' => $views
+        ]);
+    }
+    public function getOneProduct($id){
+        //TODO convert product to modified version
+        //$products = array();
+        $products = Product::where('id',$id)->get();
+        $user = auth()->user();
+        $user_id = $user['id'];
+        if(!$products){
+            return response() -> json([
+                'msg' => 'Provide Valid Id'
+            ]);
+        }
+        //$products = Product::where('user_id',$user_id)->get();
+        //$modified_products = ProductController::getModifiedProducts($products,$user_id);
+        ProductController::viewProduct($id);
+        $modifiedproducts = ProductController::getModifiedProducts($products,$user_id);
         return response()->json([
             'msg' => 'Returned Successfully',
-            'product' => $product
+            'product' => $modifiedproducts[0]
         ]);
     }
 
     public function deleteOneProduct($id){
         $product = Product::find($id);
-        if(!$product){
-            return response() -> json([
-                'message' => 'error',
-                'error' => 'Provide Valid Id'
-            ]);
-        }
         $product->delete();
         return response() -> json([
             'message' => 'Success'
@@ -290,13 +311,8 @@ class ProductController extends Controller
     public function updateOneProduct(Request $request,$id){
         // tawfeek resends everything
         //TODO what if theu want to edit photo
-        $product = Product::find($id);
-        DB::table('products')
-        ->where('id',$id)
-        ->update($request->all());
-        return response()->json([
-            'message' => 'Sucess'
-        ]);
+        //$product = Product::find($id);
+        Product::where('id',$id)->update();
     }
 
     public function likeProduct($id, Request $request){
@@ -334,35 +350,6 @@ class ProductController extends Controller
         ]);
     }
 
-    public function viewProduct($id){
-        //move to get one product
-        $product = Product::find($id);
-        if(!$product){
-            return response() -> json([
-                'msg' => 'Provide Valid Id'
-            ]);
-        }
-        $views = $product->viewed_users;
-        $views = json_decode($views);
-        $user = auth()->user();
-        $user_id = $user['id'];
-        $found = 0;
-        for($i=0;$i<count($views);$i++){
-            if($views[$i] === $user_id){
-                $found =1;
-            }
-        }
-        if($found === 0){
-            array_push($views,$user_id);
-        }
-        $views = json_encode($views);
-        $product->viewed_users = $views;
-        $product->update();
-        return response() -> json([
-            'msg' => 'success',
-            'viewed' => $views
-        ]);
-    }
     public function commentOnProduct($id,Request $request)
     {
         $product = Product::find($id);

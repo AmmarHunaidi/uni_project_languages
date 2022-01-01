@@ -13,43 +13,26 @@ use Laravel\Sanctum\HasApiTokens;
 class UserController extends Controller
 {
     public function register(Request $request){
-        $errors = array();
-        $fields = array();
-        if($request->input('name')){
-            $fields['name'] = $request->input('name');
-        }else{
-            $errors['name'] = "Please provide name";
+        $exists = User::where('email',$request->email)->exists();
+        if($exists)
+        {
+            error_log("Here!");
+            return response() -> json([
+                'message' => 'the given data was invalid',
+                'errors' => [
+                    'email' =>'Email already registered'
+                ]
+            ],401);
         }
-
-        if($request->input('email')){
-            $fields['email'] = $request->input('email');
-            $user = User::where('email', $fields['email'])->first();
-            if($user){
-                $errors['email'] = "This email has already been registered";
-            }
-        }else{
-            $errors['email'] = "Please provide email";
-        }
-
-        if($request->input('password')){
-            $fields['password'] = $request->input('password');
-        }else{
-            $errors['password'] = "Please provide password";
-        }
-
-        if($request->input('phone_number')){
-            $fields['phone_number'] = $request->input('phone_number');
-        }else{
-            $errors['phone_number'] = "Please provide phone_number";
-        }
-        
-        if(count($errors) > 0){
-            return response($errors,422);
-        }
-
+        $fields = $request->validate([
+            'name' => 'required|string',
+            'password' => 'required|string|confirmed',
+            'phone_number' => 'required|numeric'
+        ]);
+        //error_log($fields['phone_number']);
         $user = User::create([
             'name' => $fields['name'],
-            'email' => $fields['email'],
+            'email' => $request ->email,
             'phone_number' => $fields['phone_number'],
             'password' => bcrypt($fields['password'])
         ]);
@@ -65,7 +48,6 @@ class UserController extends Controller
         ]);
     }
 
-
     public function login(Request $request){
         $fields = $request->validate([
             'email' => 'required|string',
@@ -73,7 +55,7 @@ class UserController extends Controller
         ]);
         //check email
         $user = User::where('email', $fields['email'])->first();
-    
+
         //check password
         if(!$user || !Hash::check($fields['password'],$user->password)){
             return response() -> json([
@@ -86,7 +68,7 @@ class UserController extends Controller
 
         $token = $user->createToken('myapptoken')->plainTextToken;
         User::where('id',$user['id'])->update(['remember_token'=>$token]);
-        return response() -> json([
+        return response()->json_encode([
             'email' => $user->email,
             'name' => $user->name,
             'token' => $token,

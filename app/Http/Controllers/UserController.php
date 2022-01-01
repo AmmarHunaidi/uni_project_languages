@@ -16,7 +16,7 @@ class UserController extends Controller
         $exists = User::where('email',$request->email)->exists();
         if($exists)
         {
-            error_log("Here!");
+            //error_log("Here!");
             return response() -> json([
                 'message' => 'the given data was invalid',
                 'errors' => [
@@ -89,7 +89,7 @@ class UserController extends Controller
         }else{
             $errors['image'] = "Please provide image";
         }
-        
+
         if(count($errors) > 0){
             return response($errors,422);
         }

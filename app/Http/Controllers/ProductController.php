@@ -13,6 +13,35 @@ use Ramsey\Uuid\Guid\Fields;
 class ProductController extends Controller
 {
     //helper functions
+    static private function viewProduct($id){
+        //move to get one product
+        $product = Product::find($id);
+        if(!$product){
+            return response() -> json([
+                'msg' => 'Provide Valid Id'
+            ]);
+        }
+        $views = $product->viewed_users;
+        $views = json_decode($views);
+        $user = auth()->user();
+        $user_id = $user['id'];
+        $found = 0;
+        for($i=0;$i<count($views);$i++){
+            if($views[$i] === $user_id){
+                $found =1;
+            }
+        }
+        if($found === 0){
+            array_push($views,$user_id);
+        }
+        $views = json_encode($views);
+        $product->viewed_users = $views;
+        $product->update();
+        return response() -> json([
+            'msg' => 'success',
+            'viewed' => $views
+        ]);
+    }
     static private function getImageUrl($file){
         $extension = $file->getClientOriginalExtension();
         $filename = time() . '.' . $extension;
@@ -251,35 +280,6 @@ class ProductController extends Controller
         $modified_products =  ProductController::getModifiedProducts($products,$user_id);
         return response($modified_products);
     }
-    public function viewProduct($id){
-        //move to get one product
-        $product = Product::find($id);
-        if(!$product){
-            return response() -> json([
-                'msg' => 'Provide Valid Id'
-            ]);
-        }
-        $views = $product->viewed_users;
-        $views = json_decode($views);
-        $user = auth()->user();
-        $user_id = $user['id'];
-        $found = 0;
-        for($i=0;$i<count($views);$i++){
-            if($views[$i] === $user_id){
-                $found =1;
-            }
-        }
-        if($found === 0){
-            array_push($views,$user_id);
-        }
-        $views = json_encode($views);
-        $product->viewed_users = $views;
-        $product->update();
-        return response() -> json([
-            'msg' => 'success',
-            'viewed' => $views
-        ]);
-    }
     public function getOneProduct($id){
         //$products = array();
         $products = Product::where('id',$id)->get();
@@ -300,7 +300,7 @@ class ProductController extends Controller
         $product->delete();
         return response() -> json([
             'message' => 'Success'
-        ]);
+        ],200);
     }
     public function updateOneProduct(Request $request,$id){
         $product = Product::find($id);
@@ -359,10 +359,10 @@ class ProductController extends Controller
         $found = 0;
         for($i=0;$i<count($likes);$i++)
         {
-            error_log($likes[$i]);
+            //error_log($likes[$i]);
             if($likes[$i] === $user_id)
             {
-                error_log('hi');
+                //error_log('hi');
                 unset($likes[$i]);
                 $found =1;
             }

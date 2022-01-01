@@ -82,9 +82,18 @@ class UserController extends Controller
     }
 
     public function editUser(Request $request){
-        $fields = $request->validate([
-            'image' => 'required|image',
-        ]);
+        $errors = array();
+        $fields = array();
+        if($request->hasfile('image')){
+            $fields['image'] = $request->file('image');
+        }else{
+            $errors['image'] = "Please provide image";
+        }
+        
+        if(count($errors) > 0){
+            return response($errors,422);
+        }
+
         $file = $fields['image'];
         $extension = $file->getClientOriginalExtension();
         $filename = time() . '.' . $extension;

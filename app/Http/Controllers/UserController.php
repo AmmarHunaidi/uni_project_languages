@@ -13,12 +13,40 @@ use Laravel\Sanctum\HasApiTokens;
 class UserController extends Controller
 {
     public function register(Request $request){
-        $fields = $request->validate([
-            'name' => 'required|string',
-            'email' => 'required|string|unique:users,email',
-            'password' => 'required|string|confirmed',
-            'phone_number' => 'required|numeric'
-        ]);
+        $errors = array();
+        $fields = array();
+        if($request->input('name')){
+            $fields['name'] = $request->input('name');
+        }else{
+            $errors['name'] = "Please provide name";
+        }
+
+        if($request->input('email')){
+            $fields['email'] = $request->input('email');
+            $user = User::where('email', $fields['email'])->first();
+            if($user){
+                $errors['email'] = "This email has already been registered";
+            }
+        }else{
+            $errors['email'] = "Please provide email";
+        }
+
+        if($request->input('password')){
+            $fields['password'] = $request->input('password');
+        }else{
+            $errors['password'] = "Please provide password";
+        }
+
+        if($request->input('phone_number')){
+            $fields['phone_number'] = $request->input('phone_number');
+        }else{
+            $errors['phone_number'] = "Please provide phone_number";
+        }
+        
+        if(count($errors) > 0){
+            return response($errors,422);
+        }
+
         $user = User::create([
             'name' => $fields['name'],
             'email' => $fields['email'],
@@ -72,9 +100,18 @@ class UserController extends Controller
     }
 
     public function editUser(Request $request){
-        $fields = $request->validate([
-            'image' => 'required|image',
-        ]);
+        $errors = array();
+        $fields = array();
+        if($request->hasfile('image')){
+            $fields['image'] = $request->file('image');
+        }else{
+            $errors['image'] = "Please provide image";
+        }
+        
+        if(count($errors) > 0){
+            return response($errors,422);
+        }
+
         $file = $fields['image'];
         $extension = $file->getClientOriginalExtension();
         $filename = time() . '.' . $extension;

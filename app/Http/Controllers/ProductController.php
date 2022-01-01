@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Product;
 use Carbon\Carbon;
 use DateTime;
+use Ramsey\Uuid\Guid\Fields;
 
 class ProductController extends Controller
 {
@@ -280,7 +281,6 @@ class ProductController extends Controller
         ]);
     }
     public function getOneProduct($id){
-        //TODO convert product to modified version
         //$products = array();
         $products = Product::where('id',$id)->get();
         $user = auth()->user();
@@ -290,14 +290,9 @@ class ProductController extends Controller
                 'msg' => 'Provide Valid Id'
             ]);
         }
-        //$products = Product::where('user_id',$user_id)->get();
-        //$modified_products = ProductController::getModifiedProducts($products,$user_id);
         ProductController::viewProduct($id);
         $modifiedproducts = ProductController::getModifiedProducts($products,$user_id);
-        return response()->json([
-            'msg' => 'Returned Successfully',
-            'product' => $modifiedproducts[0]
-        ]);
+        return response()->json($modifiedproducts[0]);
     }
 
     public function deleteOneProduct($id){
@@ -307,13 +302,47 @@ class ProductController extends Controller
             'message' => 'Success'
         ]);
     }
-
     public function updateOneProduct(Request $request,$id){
-        // tawfeek resends everything
-        //TODO what if theu want to edit photo
-        //$product = Product::find($id);
-        Product::where('id',$id)->update();
-    }
+        $product = Product::find($id);
+        $fields = $request->validate([
+            'name' => 'required|string',
+            'type' => 'required|string',
+            'product_count' => 'required|integer',
+            'price' => 'required|integer',
+            'contact_info' => 'required|string',
+            'days_before_discount_1' => 'required|integer',
+            'discount_1' => 'required|integer',
+            'days_before_discount_2' => 'required|integer',
+            'discount_2' => 'required|integer',
+            'image' => 'nullable|image',
+            'description' => 'nullable|string'
+        ]);
+        //error_log("Here!");
+        if($fields['image'] !== null)
+        {
+            //error_log("Here!!");
+            $fields['image_url'] = ProductController::getImageUrl($request->image);
+        }
+        else
+        {
+            $fields['image_url'] = $product->image_url;
+        }
+        $product->name = $fields['name'];
+        $product->image_url = $fields['image_url'];
+        $product->contact_info = $fields['contact_info'];
+        $product->description = $fields['description'];
+        $product->days_before_discount_1 = $fields['days_before_discount_1'];
+        $product->discount_1 = $fields['discount_1'];
+        $product->days_before_discount_2 = $fields['days_before_discount_2'];
+        $product->discount_2 = $fields['discount_2'];
+        $product->price = $fields['price'];
+        $product->type = $fields['type'];
+        $product->save();
+        return response() -> json([
+            'message' => 'Success',
+            'product' => Product::find($id)
+        ],200);
+        }
 
     public function likeProduct($id, Request $request){
         $product = Product::find($id);

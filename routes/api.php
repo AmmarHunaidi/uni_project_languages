@@ -19,7 +19,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 Route::middleware('auth:sanctum')->post('/product/create', 'ProductController@createNewProduct');
 Route::middleware('auth:sanctum')->delete('product/{id}','ProductController@deleteOneProduct');
-Route::middleware('auth:sanctum')->patch('product/{id}','ProductController@updateOneProduct');
+Route::middleware('auth:sanctum')->post('product/{id}','ProductController@updateOneProduct');
 Route::middleware('auth:sanctum')->get('/product/user','ProductController@getUserProducts');
 Route::middleware('auth:sanctum')->get('/product','ProductController@getAllProducts');
 Route::middleware('auth:sanctum')->get('/product/search','ProductController@searchByFilter');

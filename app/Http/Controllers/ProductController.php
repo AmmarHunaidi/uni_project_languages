@@ -37,10 +37,6 @@ class ProductController extends Controller
         $views = json_encode($views);
         $product->viewed_users = $views;
         $product->update();
-        return response() -> json([
-            'msg' => 'success',
-            'viewed' => $views
-        ]);
     }
     static private function getImageUrl($file){
         $extension = $file->getClientOriginalExtension();

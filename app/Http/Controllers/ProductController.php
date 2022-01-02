@@ -197,7 +197,10 @@ class ProductController extends Controller
 
         //! IF VALIDATION FAILS:
         if(count($errors) > 0){
-            return response($errors, 422);
+            return response() -> json([
+                'message' => 'the given data was invalid',
+                'errors' => $errors
+            ],422);
         }
 
         // prep empty json for likes..
@@ -252,25 +255,14 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
-        $input = $request->input('input');
-        $name = ($input? $input: "");
-        //TODO : get type id & fix name and type with inputinput only
-        $type_id = ($request->input('type_id') ? $request->input('type_id'): "");
-        $input = $request->input('input');
+        $input = $request->input('query');
         //TODO : fix the time thingy
-        $expires_at = ($request->input('expires_at') ? $request->input('expires_at'): "5000-1-1");
-        $time = strtotime($input);
-        error_log($time);
-        if($time){
-            $expires_at_formatted = date('Y-m-d',$time);
-        }
-        else{
-            $expires_at_formatted = date('Y-m-d',strtotime("5000-1-1"));
-        }
-
-        error_log($expires_at_formatted);
+        $date = ($request->input('date') ? $request->input('date'): "5000-1-1");
+        $time = strtotime($date);
+        $expires_at_formatted = date('Y-m-d',$time);
         $products = Product::where('name','like','%'.$input.'%')
         ->orWhere('type' ,'like', '%'.$input.'%')
+        ->orWhere('expires_at' ,'<=', $expires_at_formatted)
         ->get();
         //->where('expires_at', '<=', $expires_at_formatted)
 

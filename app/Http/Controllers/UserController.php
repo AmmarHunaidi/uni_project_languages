@@ -62,13 +62,13 @@ class UserController extends Controller
                 'message' => 'the given data was invalid',
                 'errors' => [
                     'email' =>'Invalid email or password'
-                ]
-            ],401);
-        }
+                    ]
+                ],401);
+            }
 
         $token = $user->createToken('myapptoken')->plainTextToken;
         User::where('id',$user['id'])->update(['remember_token'=>$token]);
-        return response()->json_encode([
+        return response()->json([
             'email' => $user->email,
             'name' => $user->name,
             'token' => $token,
@@ -84,6 +84,7 @@ class UserController extends Controller
     public function editUser(Request $request){
         $errors = array();
         $fields = array();
+        error_log($request->input('image'));
         if($request->hasfile('image')){
             $fields['image'] = $request->file('image');
         }else{
@@ -91,7 +92,10 @@ class UserController extends Controller
         }
 
         if(count($errors) > 0){
-            return response($errors,422);
+            return response() -> json([
+                'message' => 'the given data was invalid',
+                'errors' => $errors
+                ],422);
         }
 
         $file = $fields['image'];
@@ -113,15 +117,19 @@ class UserController extends Controller
             'image_url' => $image_url
         ],200);
     }
+
     public function open(Request $request)
     {
-        $token =$request->validate([
-            'token' => 'required|string'
-        ]);
-        if(User::where('remember_token',$token)->exists())
-        {
-            $user = User::where('remember_token',$token)->first();
-            $token = auth('sanctum')->user()->createToken('myapptoken')->plainTextToken;
+        error_log("gfjhgf");
+        $token =$request->input('token');
+        error_log($token);
+        $user =User::where('remember_token',$token)->first();
+        if($user){
+            error_log("yes");
+            error_log($user->id);
+            $token = $user->createToken('myapptoken')->plainTextToken;
+            User::where('id',$user['id'])->update(['remember_token'=>$token]);
+            error_log($token);
             return response()->json([
             'email' => $user->email,
             'name' => $user->name,

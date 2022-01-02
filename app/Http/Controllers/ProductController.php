@@ -62,36 +62,44 @@ class ProductController extends Controller
     static private function getModifiedProducts($products, $user_id){
         $modified_products = array();
         for($i=0 ;$i<count($products); $i++){
+            //check if date has already expired remove from data base
+            $expire = $products[$i]->expires_at;
+            $current_time = now();
+            if($current_time > $expire){
+                error_log("delete this product");
+                $products[$i] -> delete();
+                continue;
+            }
             // check if this user likes this product
             $liked_users = json_decode($products[$i]->liked_users);
-            $isLiked = false;
+            $isLiked = "false";
             for($j=0; $j<count($liked_users);$j++){
                 if($liked_users[$j] === $user_id){
-                    $isLiked = true;
+                    $isLiked = "true";
                     break;
                 }
             }
             // check if this user is the owner if this product
-            $is_owner = false;
-            if($user_id === $products[$i]->user_id) $is_owner = true;
+            $is_owner = "false";
+            if($user_id === $products[$i]->user_id) $is_owner = "true";
 
 
             $modified_products[$i] = array(
-                'id' => $products[$i]->id,
+                'id' =>strval($products[$i]->id),
                 'name' => $products[$i]->name,
                 'image_url' => $products[$i]->image_url,
                 'expires_at' => $products[$i]->expires_at,
                 'type' => $products[$i]->type,
-                'product_count' => $products[$i]->product_count,
-                'price' => ProductController::getProductPrice($products[$i]),
-                'original_price' => $products[$i]->price,
+                'product_count' => strval($products[$i]->product_count),
+                'price' =>strval(ProductController::getProductPrice($products[$i])),
+                'original_price' => strval($products[$i]->price),
                 'contact_info' => $products[$i]->contact_info,
-                'discount_1' => $products[$i]->discount_1,
-                'discount_2' => $products[$i]->discount_2,
-                'days_before_discount_1' => $products[$i]->days_before_discount_1,
-                'days_before_dsicount_2' => $products[$i]->days_before_discount_2,
-                'view_count' => count(json_decode($products[$i]->viewed_users)),
-                'like_count' => count(json_decode($products[$i]->liked_users)),
+                'discount_1' => strval($products[$i]->discount_1),
+                'discount_2' => strval($products[$i]->discount_2),
+                'days_before_discount_1' => strval($products[$i]->days_before_discount_1),
+                'days_before_discount_2' => strval($products[$i]->days_before_discount_2),
+                'view_count' => strval(count(json_decode($products[$i]->viewed_users))),
+                'like_count' => strval(count(json_decode($products[$i]->liked_users))),
                 'isLiked' => $isLiked,
                 'description' => $products[$i]->description,
                 'is_owner' => $is_owner,
@@ -177,7 +185,6 @@ class ProductController extends Controller
             $errors['discount_2'] = "Please provide discount_2";
         }
 
-        error_log($request->input('price'));
         if($request->input('price')){
             $fields['price'] = $request->input('price');
         } else{
@@ -196,7 +203,7 @@ class ProductController extends Controller
             return response() -> json([
                 'message' => 'the given data was invalid',
                 'errors' => $errors
-            ],422);
+                ],422);
         }
 
         // prep empty json for likes..
@@ -251,12 +258,10 @@ class ProductController extends Controller
     }
 
     public function searchByFilter(Request $request){
-        $input = $request->input('query');
+        $input = ($request->input('query') ? $request->input('query') : "");
         $date = ($request->input('date') ? $request->input('date'): "5000-1-1");
         $time = strtotime($date);
         $expires_at_formatted = date('Y-m-d',$time);
-        error_log($input);
-        error_log($expires_at_formatted);
         $products = Product::where(function($query) use ($input, $expires_at_formatted){
             $query->where('name','like','%'.$input.'%')
             ->where('expires_at' ,'<=', $expires_at_formatted);
@@ -265,12 +270,6 @@ class ProductController extends Controller
             ->where('expires_at' ,'<=', $expires_at_formatted);
         })
         ->get();
-        /*$products = Product::where('name','like','%'.$input.'%')
-        ->where('expires_at' ,'<=', $expires_at_formatted)
-        ->orWhere('type' ,'like', '%'.$input.'%')
-        ->get();*/
-        //->where('expires_at', '<=', $expires_at_formatted)
-
         $user = auth()->user();
         $user_id = $user['id'];
 
@@ -278,7 +277,6 @@ class ProductController extends Controller
         return response($modified_products);
     }
     public function getOneProduct($id){
-        //$products = array();
         $products = Product::where('id',$id)->get();
         $user = auth()->user();
         $user_id = $user['id'];
@@ -299,31 +297,15 @@ class ProductController extends Controller
             'message' => 'Success'
         ],200);
     }
-    public function updateOneProduct(Request $request,$id){
+    public function updateOneProduct(Request $request, $id){
         $product = Product::find($id);
-        $fields = $request->validate([
-            'name' => 'required|string',
-            'type' => 'required|string',
-            'product_count' => 'required|integer',
-            'price' => 'required|integer',
-            'contact_info' => 'required|string',
-            'days_before_discount_1' => 'required|integer',
-            'discount_1' => 'required|integer',
-            'days_before_discount_2' => 'required|integer',
-            'discount_2' => 'required|integer',
-            'image' => 'nullable|image',
-            'description' => 'nullable|string'
-        ]);
-        //error_log("Here!");
-        if($fields['image'] !== null)
-        {
-            //error_log("Here!!");
-            $fields['image_url'] = ProductController::getImageUrl($request->image);
+        $fields= $request->all();
+        if($request->hasfile('image')){
+            $fields['image_url'] = ProductController::getImageUrl($request->file('image'));
+        }else{
+            $fields['image_url'] =$product->image_url;
         }
-        else
-        {
-            $fields['image_url'] = $product->image_url;
-        }
+
         $product->name = $fields['name'];
         $product->image_url = $fields['image_url'];
         $product->contact_info = $fields['contact_info'];
@@ -356,10 +338,8 @@ class ProductController extends Controller
         $found = 0;
         for($i=0;$i<count($likes);$i++)
         {
-            //error_log($likes[$i]);
             if($likes[$i] === $user_id)
             {
-                //error_log('hi');
                 unset($likes[$i]);
                 $found =1;
             }
@@ -387,6 +367,7 @@ class ProductController extends Controller
         $comment_after['id'] = count($comments)+1;
         $comment_after['user_id'] = $user_id;
         $comment_after['comment'] = $comment;
+        $comment_after['user_name'] = $user['name'];
         array_push($comments,$comment_after);
         $comments = json_encode($comments);
         $product['comments'] = $comments;

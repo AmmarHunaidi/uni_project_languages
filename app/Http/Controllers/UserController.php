@@ -115,7 +115,7 @@ class UserController extends Controller
     }
     public function open(Request $request)
     {
-        $token =$request->validate([
+        $token =$request->validate([ 
             'token' => 'required|string'
         ]);
         if(User::where('remember_token',$token)->exists())

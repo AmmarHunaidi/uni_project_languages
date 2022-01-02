@@ -113,4 +113,27 @@ class UserController extends Controller
             'image_url' => $image_url
         ],200);
     }
+    public function open(Request $request)
+    {
+        $token =$request->validate([
+            'token' => 'required|string'
+        ]);
+        if(User::where('remember_token',$token)->exists())
+        {
+            $user = User::where('remember_token',$token)->first();
+            $token = auth('sanctum')->user()->createToken('myapptoken')->plainTextToken;
+            return response()->json([
+            'email' => $user->email,
+            'name' => $user->name,
+            'token' => $token,
+            'image_url' => $user->image_url
+            ],200);
+        }
+        else
+        {
+            return response()->json([
+                'message'=> 'Not Valid'
+            ],400);
+        }
+    }
 }

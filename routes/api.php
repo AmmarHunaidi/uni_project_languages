@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->post('/user','UserController@editUser');
 
 Route::post('/register', 'UserController@register');
 Route::post('/login', 'UserController@login');
+Route::post('/open', 'UserController@open');
 
 Route::get('/type','TypeController@index');
 Route::post('/type','TypeController@store');

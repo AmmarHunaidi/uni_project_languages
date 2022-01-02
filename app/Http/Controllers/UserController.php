@@ -127,7 +127,7 @@ class UserController extends Controller
             'name' => $user->name,
             'token' => $token,
             'image_url' => $user->image_url
-            ]);
+            ],200);
         }
         else
         {

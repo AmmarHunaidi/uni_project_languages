@@ -252,7 +252,6 @@ class ProductController extends Controller
 
     public function searchByFilter(Request $request){
         $input = $request->input('query');
-        //TODO : fix the time thingy
         $date = ($request->input('date') ? $request->input('date'): "5000-1-1");
         $time = strtotime($date);
         $expires_at_formatted = date('Y-m-d',$time);

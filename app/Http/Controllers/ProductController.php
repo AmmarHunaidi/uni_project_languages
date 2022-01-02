@@ -255,10 +255,20 @@ class ProductController extends Controller
         $date = ($request->input('date') ? $request->input('date'): "5000-1-1");
         $time = strtotime($date);
         $expires_at_formatted = date('Y-m-d',$time);
-        $products = Product::where('name','like','%'.$input.'%')
-        ->orWhere('type' ,'like', '%'.$input.'%')
-        ->orWhere('expires_at' ,'<=', $expires_at_formatted)
+        error_log($input);
+        error_log($expires_at_formatted);
+        $products = Product::where(function($query) use ($input, $expires_at_formatted){
+            $query->where('name','like','%'.$input.'%')
+            ->where('expires_at' ,'<=', $expires_at_formatted);
+        })->orWhere(function($query) use ($input, $expires_at_formatted){
+            $query->where('type' ,'like', '%'.$input.'%')
+            ->where('expires_at' ,'<=', $expires_at_formatted);
+        })
         ->get();
+        /*$products = Product::where('name','like','%'.$input.'%')
+        ->where('expires_at' ,'<=', $expires_at_formatted)
+        ->orWhere('type' ,'like', '%'.$input.'%')
+        ->get();*/
         //->where('expires_at', '<=', $expires_at_formatted)
 
         $user = auth()->user();

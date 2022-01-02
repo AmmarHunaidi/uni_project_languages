@@ -25,7 +25,6 @@ Route::middleware('auth:sanctum')->get('/product','ProductController@getAllProdu
 Route::middleware('auth:sanctum')->get('/product/search','ProductController@searchByFilter');
 Route::middleware('auth:sanctum')->get('/product/{id}','ProductController@getOneProduct');
 Route::middleware('auth:sanctum')->post('/product/like/{id}','ProductController@likeProduct');
-Route::middleware('auth:sanctum')->post('/product/view/{id}','ProductController@viewProduct');
 Route::middleware('auth:sanctum')->post('/product/comment/{id}','ProductController@commentOnProduct');
 Route::middleware('auth:sanctum')->delete('/product/comment/{id}','ProductController@deleteComment');
 
